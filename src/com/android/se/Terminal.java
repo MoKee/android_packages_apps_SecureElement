@@ -82,6 +82,9 @@ public class Terminal {
                     }
                 } else {
                     initializeAccessControl();
+                    synchronized (mLock) {
+                        mDefaultApplicationSelectedOnBasicChannel = true;
+                    }
                 }
             }
         }
@@ -202,9 +205,6 @@ public class Terminal {
             }
         } catch (RemoteException ignore) {
         }
-        synchronized (mLock) {
-            mDefaultApplicationSelectedOnBasicChannel = true;
-        }
     }
 
     private void select(byte[] aid) throws RemoteException {
@@ -225,8 +225,8 @@ public class Terminal {
             selectResponse = null;
             throw new NoSuchElementException("Response length is too small");
         }
-        int sw1 = selectResponse[selectResponse.length - 2];
-        int sw2 = selectResponse[selectResponse.length - 1];
+        int sw1 = selectResponse[selectResponse.length - 2] & 0xFF;
+        int sw2 = selectResponse[selectResponse.length - 1] & 0xFF;
         if (sw1 != 0x90 || sw2 != 0x00) {
             selectResponse = null;
             throw new NoSuchElementException("Status word is incorrect");
@@ -276,7 +276,11 @@ public class Terminal {
                 throw new UnsupportedOperationException("OpenBasicChannel() failed");
             } else if (status[0] == SecureElementStatus.IOERROR) {
                 throw new ServiceSpecificException(SEService.IO_ERROR, "OpenBasicChannel() failed");
+            } else if (status[0] == SecureElementStatus.NO_SUCH_ELEMENT_ERROR) {
+                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR,
+                        "OpenBasicChannel() failed");
             }
+
             Channel basicChannel = new Channel(session, this, 0, selectResponse,
                     listener);
             basicChannel.setChannelAccess(channelAccess);
@@ -622,6 +626,11 @@ public class Terminal {
                 throw new NullPointerException("session is null");
             }
             mSessions.remove(session);
+            synchronized (mLock) {
+                if (mSessions.size() == 0) {
+                    mDefaultApplicationSelectedOnBasicChannel = true;
+                }
+            }
         }
 
         @Override

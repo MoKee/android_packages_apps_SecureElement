@@ -269,7 +269,7 @@ public class Channel implements IBinder.DeathRecipient {
      * implementation.
      */
     public byte[] getSelectResponse() {
-        return mSelectResponse;
+        return (mHasSelectedAid ? mSelectResponse : null);
     }
 
     public boolean isBasicChannel() {
