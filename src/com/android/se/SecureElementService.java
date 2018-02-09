@@ -274,6 +274,8 @@ public final class SecureElementService extends Service {
                         packageName, Binder.getCallingPid());
             } catch (IOException e) {
                 throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            } catch (NoSuchElementException e) {
+                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR, e.getMessage());
             }
 
             if (channel == null) {
@@ -308,6 +310,8 @@ public final class SecureElementService extends Service {
                         packageName, Binder.getCallingPid());
             } catch (IOException e) {
                 throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            } catch (NoSuchElementException e) {
+                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR, e.getMessage());
             }
 
             if (channel == null) {

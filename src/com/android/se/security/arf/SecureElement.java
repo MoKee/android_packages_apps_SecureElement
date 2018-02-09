@@ -51,6 +51,7 @@ import com.android.se.security.gpac.REF_DO;
 
 import java.io.IOException;
 import java.util.MissingResourceException;
+import java.util.NoSuchElementException;
 
 /**
  * Provides high-level functions for SE communication
@@ -99,7 +100,7 @@ public class SecureElement {
      * @param aid Applet identifier
      * @return Handle to "Logical Channel" allocated by the SE; <code>0</code> if error occurred
      */
-    public Channel openLogicalArfChannel(byte[] aid) throws IOException {
+    public Channel openLogicalArfChannel(byte[] aid) throws IOException, NoSuchElementException {
         try {
             mArfChannel = mTerminalHandle.openLogicalChannelWithoutChannelAccess(aid);
             if (mArfChannel == null) {
@@ -108,6 +109,8 @@ public class SecureElement {
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
         } catch (IOException e) {
+            throw e;
+        } catch (NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
             Log.e(mTag, "Error opening logical channel " + e.getLocalizedMessage());
