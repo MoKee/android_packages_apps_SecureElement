@@ -31,16 +31,19 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.ServiceSpecificException;
 import android.se.omapi.ISecureElementChannel;
 import android.se.omapi.ISecureElementListener;
 import android.se.omapi.ISecureElementReader;
 import android.se.omapi.ISecureElementService;
 import android.se.omapi.ISecureElementSession;
+import android.se.omapi.SEService;
 import android.util.Log;
 
 import com.android.se.Terminal.SecureElementReader;
 
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessControlException;
 import java.util.ArrayList;
@@ -264,8 +267,15 @@ public final class SecureElementService extends Service {
             }
 
             String packageName = getPackageNameFromCallingUid(Binder.getCallingUid());
-            Channel channel = mReader.getTerminal().openBasicChannel(this, aid,
-                    p2, listener, packageName, Binder.getCallingPid());
+            Channel channel = null;
+
+            try {
+                channel = mReader.getTerminal().openBasicChannel(this, aid, p2, listener,
+                        packageName, Binder.getCallingPid());
+            } catch (IOException e) {
+                throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            }
+
             if (channel == null) {
                 Log.i(mTag, "OpenBasicChannel() - returning null");
                 return null;
@@ -291,8 +301,14 @@ public final class SecureElementService extends Service {
             }
 
             String packageName = getPackageNameFromCallingUid(Binder.getCallingUid());
-            Channel channel = mReader.getTerminal().openLogicalChannel(this, aid, p2,
-                    listener, packageName, Binder.getCallingPid());
+            Channel channel = null;
+
+            try {
+                channel = mReader.getTerminal().openLogicalChannel(this, aid, p2, listener,
+                        packageName, Binder.getCallingPid());
+            } catch (IOException e) {
+                throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            }
 
             if (channel == null) {
                 Log.i(mTag, "openLogicalChannel() - returning null");
