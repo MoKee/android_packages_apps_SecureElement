@@ -100,6 +100,9 @@ public class PKCS15Handler {
         try {
             ACRulesPath = mACMainObject.analyseFile();
             mACMFfound = true;
+        } catch (IOException e) {
+            // IOException must be propagated to the access control enforcer.
+            throw e;
         } catch (Exception e) {
             Log.i(mTag, "ACMF Not found !");
             mACMainObject = null;
@@ -121,6 +124,9 @@ public class PKCS15Handler {
 
             try {
                 mACRulesObject.analyseFile(ACRulesPath);
+            } catch (IOException e) {
+                // IOException must be propagated to the access control enforcer.
+                throw e;
             } catch (Exception e) {
                 Log.i(mTag, "Exception: clear access rule cache and refresh tag");
                 mSEHandle.resetAccessRules();
