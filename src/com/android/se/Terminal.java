@@ -42,6 +42,7 @@ import com.android.se.internal.ByteArrayConverter;
 import com.android.se.security.AccessControlEnforcer;
 import com.android.se.security.ChannelAccess;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -237,12 +238,13 @@ public class Terminal {
      * Opens a Basic Channel with the given AID and P2 paramters
      */
     public Channel openBasicChannel(SecureElementSession session, byte[] aid, byte p2,
-            ISecureElementListener listener, String packageName,
-            int pid) throws RemoteException {
+            ISecureElementListener listener, String packageName, int pid) throws IOException {
         if (aid != null && aid.length == 0) {
             aid = null;
         } else if (aid != null && (aid.length < 5 || aid.length > 16)) {
             throw new IllegalArgumentException("AID out of range");
+        } else if (!mIsConnected) {
+            throw new IOException("Secure Element is not connected");
         }
 
         Log.w(mTag, "Enable access control on basic channel for " + packageName);
@@ -260,22 +262,28 @@ public class Terminal {
 
             ArrayList<byte[]> responseList = new ArrayList<byte[]>();
             byte[] status = new byte[1];
-            mSEHal.openBasicChannel(byteArrayToArrayList(aid), p2,
-                    new ISecureElement.openBasicChannelCallback() {
-                        @Override
-                        public void onValues(ArrayList<Byte> responseObject, byte halStatus) {
-                            status[0] = halStatus;
-                            responseList.add(arrayListToByteArray(responseObject));
-                            return;
-                        }
-                    });
+
+            try {
+                mSEHal.openBasicChannel(byteArrayToArrayList(aid), p2,
+                        new ISecureElement.openBasicChannelCallback() {
+                            @Override
+                            public void onValues(ArrayList<Byte> responseObject, byte halStatus) {
+                                status[0] = halStatus;
+                                responseList.add(arrayListToByteArray(responseObject));
+                                return;
+                            }
+                        });
+            } catch (RemoteException e) {
+                throw new IOException(e.getMessage());
+            }
+
             byte[] selectResponse = responseList.get(0);
             if (status[0] == SecureElementStatus.CHANNEL_NOT_AVAILABLE) {
                 return null;
             } else if (status[0] == SecureElementStatus.UNSUPPORTED_OPERATION) {
                 throw new UnsupportedOperationException("OpenBasicChannel() failed");
             } else if (status[0] == SecureElementStatus.IOERROR) {
-                throw new ServiceSpecificException(SEService.IO_ERROR, "OpenBasicChannel() failed");
+                throw new IOException("OpenBasicChannel() failed");
             } else if (status[0] == SecureElementStatus.NO_SUCH_ELEMENT_ERROR) {
                 throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR,
                         "OpenBasicChannel() failed");
@@ -303,24 +311,21 @@ public class Terminal {
     /**
      * Opens a logical Channel without Channel Access initialization.
      */
-    public Channel openLogicalChannelWithoutChannelAccess(byte[] aid) throws RemoteException {
+    public Channel openLogicalChannelWithoutChannelAccess(byte[] aid) throws IOException {
         return openLogicalChannel(null, aid, (byte) 0x00, null, null, 0);
     }
 
     /**
      * Opens a logical Channel with AID.
      */
-    public Channel openLogicalChannel(
-            SecureElementSession session, byte[] aid, byte p2,
-            ISecureElementListener listener, String packageName,
-            int pid) throws RemoteException {
+    public Channel openLogicalChannel(SecureElementSession session, byte[] aid, byte p2,
+            ISecureElementListener listener, String packageName, int pid) throws IOException {
         if (aid != null && aid.length == 0) {
             aid = null;
         } else if (aid != null && (aid.length < 5 || aid.length > 16)) {
             throw new IllegalArgumentException("AID out of range");
         } else if (!mIsConnected) {
-            throw new ServiceSpecificException(SEService.IO_ERROR,
-                    "Secure Element is not connected");
+            throw new IOException("Secure Element is not connected");
         }
 
         ChannelAccess channelAccess = null;
@@ -332,22 +337,27 @@ public class Terminal {
         synchronized (mLock) {
             LogicalChannelResponse[] responseArray = new LogicalChannelResponse[1];
             byte[] status = new byte[1];
-            mSEHal.openLogicalChannel(byteArrayToArrayList(aid), p2,
-                    new ISecureElement.openLogicalChannelCallback() {
-                        @Override
-                        public void onValues(LogicalChannelResponse response, byte halStatus) {
-                            status[0] = halStatus;
-                            responseArray[0] = response;
-                            return;
-                        }
-                    });
+
+            try {
+                mSEHal.openLogicalChannel(byteArrayToArrayList(aid), p2,
+                        new ISecureElement.openLogicalChannelCallback() {
+                            @Override
+                            public void onValues(LogicalChannelResponse response, byte halStatus) {
+                                status[0] = halStatus;
+                                responseArray[0] = response;
+                                return;
+                            }
+                        });
+            } catch (RemoteException e) {
+                throw new IOException(e.getMessage());
+            }
+
             if (status[0] == SecureElementStatus.CHANNEL_NOT_AVAILABLE) {
                 return null;
             } else if (status[0] == SecureElementStatus.UNSUPPORTED_OPERATION) {
                 throw new UnsupportedOperationException("OpenLogicalChannel() failed");
             } else if (status[0] == SecureElementStatus.IOERROR) {
-                throw new ServiceSpecificException(SEService.IO_ERROR,
-                        "OpenLogicalChannel() failed");
+                throw new IOException("OpenLogicalChannel() failed");
             } else if (status[0] == SecureElementStatus.NO_SUCH_ELEMENT_ERROR) {
                 throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR,
                         "OpenLogicalChannel() failed");
@@ -499,8 +509,8 @@ public class Terminal {
     /**
      * Initialize the Access Control and set up the channel access.
      */
-    public ChannelAccess setUpChannelAccess(byte[] aid, String packageName,
-            boolean checkRefreshTag, int pid) {
+    private ChannelAccess setUpChannelAccess(byte[] aid, String packageName,
+            boolean checkRefreshTag, int pid) throws IOException {
         if (mAccessControlEnforcer == null) {
             Log.e(mTag, "Access Control Enforcer not properly set up");
             initializeAccessControl();
@@ -514,6 +524,8 @@ public class Terminal {
                                 checkRefreshTag);
                 channelAccess.setCallingPid(pid);
                 return channelAccess;
+            } catch (IOException e) {
+                throw e;
             } catch (Exception e) {
                 throw new SecurityException("Exception in setUpChannelAccess()" + e);
             }
