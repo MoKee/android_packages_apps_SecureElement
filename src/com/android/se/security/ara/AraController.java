@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.MissingResourceException;
 
 /** Reads and Maintains the ARA access for the Secure Element */
 public class AraController {
@@ -88,7 +89,7 @@ public class AraController {
     public synchronized void initialize() throws IOException {
         Channel channel = mTerminal.openLogicalChannelWithoutChannelAccess(getAraMAid());
         if (channel == null) {
-            throw new AccessControlException("could not open channel");
+            throw new MissingResourceException("could not open channel", "", "");
         }
 
         // set access conditions to access ARA-M.
