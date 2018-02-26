@@ -62,6 +62,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.MissingResourceException;
 
 /** Reads and Maintains the ARF and ARA access control for a particular Secure Element */
 public class AccessControlEnforcer {
@@ -264,8 +265,8 @@ public class AccessControlEnforcer {
     }
 
     /** Sets up the Channel Access for the given Package */
-    public ChannelAccess setUpChannelAccess(
-            byte[] aid, String packageName, boolean checkRefreshTag) throws IOException {
+    public ChannelAccess setUpChannelAccess(byte[] aid, String packageName, boolean checkRefreshTag)
+            throws IOException, MissingResourceException {
         ChannelAccess channelAccess = null;
         // check result of channel access during initialization procedure
         if (mInitialChannelAccess.getAccess() == ChannelAccess.ACCESS.DENIED) {
@@ -292,7 +293,8 @@ public class AccessControlEnforcer {
     }
 
     private synchronized ChannelAccess internal_setUpChannelAccess(byte[] aid,
-            String packageName, boolean checkRefreshTag) throws IOException {
+            String packageName, boolean checkRefreshTag) throws IOException,
+            MissingResourceException {
         if (packageName == null || packageName.isEmpty()) {
             throw new AccessControlException("package names must be specified");
         }
@@ -309,6 +311,8 @@ public class AccessControlEnforcer {
             }
             return getAccessRule(aid, appCerts);
         } catch (IOException e) {
+            throw e;
+        } catch (MissingResourceException e) {
             throw e;
         } catch (Throwable exp) {
             throw new AccessControlException(exp.getMessage());
@@ -386,6 +390,9 @@ public class AccessControlEnforcer {
             } catch (IOException e) {
                 throw new AccessControlException("Access-Control not found in "
                         + mTerminal.getName());
+            } catch (MissingResourceException e) {
+                throw new AccessControlException("Access-Control not found in "
+                        + mTerminal.getName());
             }
         }
 
@@ -422,6 +429,10 @@ public class AccessControlEnforcer {
                 // There was a communication error between the terminal and the SE.
                 // IOError shall be notified to the client application in this case.
                 throw e;
+            } catch (MissingResourceException e) {
+                // Failure in retrieving rules due to the lack of a new logical channel
+                // (and only this failure) should not result in a security exception.
+                throw e;
             } catch (Exception e) {
                 throw new AccessControlException("No ARA applet found in " + mTerminal.getName());
             }
@@ -431,6 +442,10 @@ public class AccessControlEnforcer {
             } catch (IOException e) {
                 // There was a communication error between the terminal and the SE.
                 // IOError shall be notified to the client application in this case.
+                throw e;
+            } catch (MissingResourceException e) {
+                // Failure in retrieving rules due to the lack of a new logical channel
+                // (and only this failure) should not result in a security exception.
                 throw e;
             } catch (Exception e) {
                 Log.e(mTag, e.getMessage());
