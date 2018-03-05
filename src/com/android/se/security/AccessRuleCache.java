@@ -399,9 +399,9 @@ public class AccessRuleCache {
         if (aidRefDo == null) {
             return null;
         }
-        // C0 00 is specific -> default AID
-        // 4F 00 is NOT specific -> all AIDs
-        if (aidRefDo.getTag() == AID_REF_DO.TAG || aidRefDo.getAid().length == 0) {
+
+        // The specified AID_REF_DO does not have any AID and it is not for the default AID.
+        if (aidRefDo.getTag() == AID_REF_DO.TAG && aidRefDo.getAid().length == 0) {
             return null;
         }
 
