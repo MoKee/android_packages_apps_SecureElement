@@ -29,6 +29,7 @@ import android.hardware.secure_element.V1_0.ISecureElement;
 import android.hardware.secure_element.V1_0.ISecureElementHalCallback;
 import android.hardware.secure_element.V1_0.LogicalChannelResponse;
 import android.hardware.secure_element.V1_0.SecureElementStatus;
+import android.os.Build;
 import android.os.RemoteException;
 import android.os.ServiceSpecificException;
 import android.se.omapi.ISecureElementListener;
@@ -65,7 +66,7 @@ public class Terminal {
     private Context mContext;
     private boolean mDefaultApplicationSelectedOnBasicChannel = true;
 
-    private boolean mDebug = true;
+    private static final boolean DEBUG = Build.IS_DEBUGGABLE;
 
     private ISecureElement mSEHal;
 
@@ -476,7 +477,7 @@ public class Terminal {
             throw new IOException("Error in transmit()");
         }
         byte[] rsp = arrayListToByteArray(response);
-        if (mDebug) {
+        if (DEBUG) {
             Log.i(mTag, "Sent : " + ByteArrayConverter.byteArrayToHexString(cmd));
             Log.i(mTag, "Received : " + ByteArrayConverter.byteArrayToHexString(rsp));
         }
