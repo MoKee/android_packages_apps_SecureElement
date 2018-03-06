@@ -38,6 +38,8 @@ import com.android.se.Terminal;
 import com.android.se.security.AccessRuleCache;
 import com.android.se.security.arf.pkcs15.PKCS15Handler;
 
+import java.io.IOException;
+
 /** Initializes and maintains the ARF access rules of a Secure Element */
 public class ArfController {
 
@@ -52,7 +54,7 @@ public class ArfController {
     }
 
     /** Initializes the ARF Rules for the Secure Element */
-    public synchronized boolean initialize() {
+    public synchronized boolean initialize() throws IOException {
         if (mSecureElement == null) {
             mSecureElement = new SecureElement(this, mTerminal);
         }
