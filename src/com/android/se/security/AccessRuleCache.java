@@ -56,7 +56,7 @@ import java.util.Set;
 
 /** Stores all the access rules from the Secure Element */
 public class AccessRuleCache {
-    private final boolean mDBG = Build.IS_DEBUGGABLE;
+    private static final boolean DEBUG = Build.IS_DEBUGGABLE;
     private final String mTag = "SecureElement-AccessRuleCache";
     // Previous "RefreshTag"
     // 2012-09-25
@@ -236,12 +236,12 @@ public class AccessRuleCache {
                 ca.setUseApduFilter(false);
                 ca.setApduFilter(null);
             }
-            if (mDBG) {
+            if (DEBUG) {
                 Log.i(mTag, "Merged Access Rule: " + refDo.toString() + ", " + ca.toString());
             }
             return;
         }
-        if (mDBG) {
+        if (DEBUG) {
             Log.i(mTag, "Add Access Rule: " + refDo.toString() + ", " + channelAccess.toString());
         }
         mRuleCache.put(refDo, channelAccess);
@@ -279,7 +279,7 @@ public class AccessRuleCache {
                             && (ca.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
                         ca.setNFCEventAccess(ca.getApduAccess());
                     }
-                    if (mDBG) {
+                    if (DEBUG) {
                         Log.i(mTag, "findAccessRule() " + ref_do.toString() + ", "
                                 + mRuleCache.get(ref_do).toString());
                     }
@@ -293,7 +293,7 @@ public class AccessRuleCache {
         // now we have to check if the given AID
         // is used together with another specific hash value (another device application)
         if (searchForRulesWithSpecificAidButOtherHash(aid_ref_do) != null) {
-            if (mDBG) {
+            if (DEBUG) {
                 Log.i(mTag, "Conflict Resolution Case A returning access rule \'NEVER\'.");
             }
             ChannelAccess ca = new ChannelAccess();
@@ -310,7 +310,7 @@ public class AccessRuleCache {
         ref_do = new REF_DO(aid_ref_do, hash_ref_do);
 
         if (mRuleCache.containsKey(ref_do)) {
-            if (mDBG) {
+            if (DEBUG) {
                 Log.i(mTag, "findAccessRule() " + ref_do.toString() + ", "
                         + mRuleCache.get(ref_do).toString());
             }
@@ -334,7 +334,7 @@ public class AccessRuleCache {
                             && (ca.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
                         ca.setNFCEventAccess(ca.getApduAccess());
                     }
-                    if (mDBG) {
+                    if (DEBUG) {
                         Log.i(mTag, "findAccessRule() " + ref_do.toString() + ", "
                                 + mRuleCache.get(ref_do).toString());
                     }
@@ -349,7 +349,7 @@ public class AccessRuleCache {
         // now we have to check if the all AID DO
         // is used together with another Hash
         if (searchForRulesWithAllAidButOtherHash() != null) {
-            if (mDBG) {
+            if (DEBUG) {
                 Log.i(mTag, "Conflict Resolution Case C returning access rule \'NEVER\'.");
             }
             ChannelAccess ca = new ChannelAccess();
@@ -367,14 +367,14 @@ public class AccessRuleCache {
         ref_do = new REF_DO(aid_ref_do, hash_ref_do);
 
         if (mRuleCache.containsKey(ref_do)) {
-            if (mDBG) {
+            if (DEBUG) {
                 Log.i(mTag, "findAccessRule() " + ref_do.toString() + ", "
                         + mRuleCache.get(ref_do).toString());
             }
             return mRuleCache.get(ref_do);
         }
 
-        if (mDBG) Log.i(mTag, "findAccessRule() not found");
+        if (DEBUG) Log.i(mTag, "findAccessRule() not found");
         return null;
     }
 
