@@ -25,12 +25,16 @@ package com.android.se;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.ServiceSpecificException;
 import android.se.omapi.ISecureElementChannel;
 import android.se.omapi.ISecureElementListener;
+import android.se.omapi.SEService;
 import android.util.Log;
 
 import com.android.se.SecureElementService.SecureElementSession;
 import com.android.se.security.ChannelAccess;
+
+import java.io.IOException;
 
 /**
  * Represents a Channel opened with the Secure Element
@@ -106,7 +110,7 @@ public class Channel implements IBinder.DeathRecipient {
     /**
      * Transmits the given byte and returns the response.
      */
-    public byte[] transmit(byte[] command) throws RemoteException {
+    public byte[] transmit(byte[] command) throws IOException {
         if (isClosed()) {
             throw new IllegalStateException("Channel is closed");
         }
@@ -142,7 +146,7 @@ public class Channel implements IBinder.DeathRecipient {
         }
     }
 
-    private boolean selectNext() throws RemoteException {
+    private boolean selectNext() throws IOException {
         if (isClosed()) {
             throw new IllegalStateException("Channel is closed");
         } else if (mChannelAccess == null) {
@@ -306,13 +310,21 @@ public class Channel implements IBinder.DeathRecipient {
         @Override
         public byte[] transmit(byte[] command) throws RemoteException {
             Channel.this.setCallingPid(Binder.getCallingPid());
-            return Channel.this.transmit(command);
+            try {
+                return Channel.this.transmit(command);
+            } catch (IOException e) {
+                throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            }
         }
 
         @Override
         public boolean selectNext() throws RemoteException {
             Channel.this.setCallingPid(Binder.getCallingPid());
-            return Channel.this.selectNext();
+            try {
+                return Channel.this.selectNext();
+            } catch (IOException e) {
+                throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            }
         }
     }
 }

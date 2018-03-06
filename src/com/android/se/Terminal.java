@@ -204,11 +204,11 @@ public class Terminal {
                 } catch (Exception ignore) {
                 }
             }
-        } catch (RemoteException ignore) {
+        } catch (Exception ignore) {
         }
     }
 
-    private void select(byte[] aid) throws RemoteException {
+    private void select(byte[] aid) throws IOException {
         int commandSize = (aid == null ? 0 : aid.length) + 5;
         byte[] selectCommand = new byte[commandSize];
         selectCommand[0] = 0x00;
@@ -425,11 +425,10 @@ public class Terminal {
      * @param cmd the command APDU to be transmitted.
      * @return the response received.
      */
-    public byte[] transmit(byte[] cmd) throws RemoteException {
+    public byte[] transmit(byte[] cmd) throws IOException {
         if (!mIsConnected) {
             Log.e(mTag, "Secure Element is not connected");
-            throw new ServiceSpecificException(SEService.IO_ERROR,
-                    "Secure Element is not connected");
+            throw new IOException("Secure Element is not connected");
         }
 
         byte[] rsp = transmitInternal(cmd);
@@ -456,10 +455,15 @@ public class Terminal {
         return rsp;
     }
 
-    private byte[] transmitInternal(byte[] cmd) throws RemoteException {
-        ArrayList<Byte> response = mSEHal.transmit(byteArrayToArrayList(cmd));
+    private byte[] transmitInternal(byte[] cmd) throws IOException {
+        ArrayList<Byte> response;
+        try {
+            response = mSEHal.transmit(byteArrayToArrayList(cmd));
+        } catch (RemoteException e) {
+            throw new IOException(e.getMessage());
+        }
         if (response.isEmpty()) {
-            throw new ServiceSpecificException(SEService.IO_ERROR, "Error in transmit()");
+            throw new IOException("Error in transmit()");
         }
         byte[] rsp = arrayListToByteArray(response);
         if (mDebug) {
