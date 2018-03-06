@@ -114,6 +114,10 @@ public class AraController {
 
             Log.i(mTag, "Read ARs from ARA");
             readAllAccessRules();
+        } catch (IOException e) {
+            // Some kind of communication problem happened while transmit() was executed.
+            // IOError shall be notified to the client application in this case.
+            throw e;
         } catch (Exception e) {
             Log.i(mTag, "ARA error: " + e.getLocalizedMessage());
             throw new AccessControlException(e.getLocalizedMessage());
@@ -124,7 +128,7 @@ public class AraController {
         }
     }
 
-    private void readAllAccessRules() throws AccessControlException {
+    private void readAllAccessRules() throws AccessControlException, IOException {
         try {
             byte[] data = mApplet.readAllAccessRules();
             // no data returned, but no exception

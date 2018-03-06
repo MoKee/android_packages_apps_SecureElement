@@ -81,9 +81,12 @@ public class SecureElement {
      * @param cmd APDU command
      * @return Data returned by the APDU command
      */
-    public byte[] exchangeAPDU(EF ef, byte[] cmd) throws SecureElementException {
+    public byte[] exchangeAPDU(EF ef, byte[] cmd) throws IOException, SecureElementException {
         try {
             return mArfChannel.transmit(cmd);
+        } catch (IOException e) {
+            // Communication error happened while the terminal sending a command.
+            throw e;
         } catch (Exception e) {
             throw new SecureElementException(
                     "Secure Element access error " + e.getLocalizedMessage());
