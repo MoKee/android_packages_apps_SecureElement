@@ -47,6 +47,7 @@ import com.android.se.security.gpac.REF_AR_DO;
 import com.android.se.security.gpac.Response_ALL_AR_DO;
 import com.android.se.security.gpac.Response_DO_Factory;
 
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -84,7 +85,7 @@ public class AraController {
      * Initialize the AraController, reads the refresh tag.
      * and fetch the access rules
      */
-    public synchronized void initialize() throws Exception {
+    public synchronized void initialize() throws IOException {
         Channel channel = mTerminal.openLogicalChannelWithoutChannelAccess(getAraMAid());
         if (channel == null) {
             throw new AccessControlException("could not open channel");

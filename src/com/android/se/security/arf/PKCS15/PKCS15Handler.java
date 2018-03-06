@@ -45,6 +45,7 @@ import com.android.se.Channel;
 import com.android.se.security.arf.SecureElement;
 import com.android.se.security.arf.SecureElementException;
 
+import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.cert.CertificateException;
 import java.util.MissingResourceException;
@@ -87,7 +88,8 @@ public class PKCS15Handler {
     }
 
     /** Updates "Access Control Rules" */
-    private boolean updateACRules() throws Exception, PKCS15Exception, SecureElementException {
+    private boolean updateACRules() throws CertificateException, IOException, PKCS15Exception,
+            SecureElementException {
         byte[] ACRulesPath = null;
         if (!mACMFfound) {
             mSEHandle.resetAccessRules();
@@ -133,7 +135,7 @@ public class PKCS15Handler {
 
     /** Initializes "Access Control" entry point [ACMain] */
     private void initACEntryPoint()
-            throws PKCS15Exception, SecureElementException, CertificateException {
+            throws IOException, PKCS15Exception, SecureElementException, CertificateException {
 
         byte[] DODFPath = null;
         for (int ind = 0; ind < CONTAINER_AIDS.length; ind++) {
@@ -171,7 +173,7 @@ public class PKCS15Handler {
      * @return <code>true</code> when container is active; <code>false</code> otherwise
      */
     private boolean selectACRulesContainer(byte[] aid)
-            throws PKCS15Exception, SecureElementException {
+            throws IOException, PKCS15Exception, SecureElementException {
         if (aid == null) {
             mArfChannel = mSEHandle.openLogicalArfChannel(new byte[]{});
             if (mArfChannel != null) {
@@ -216,12 +218,14 @@ public class PKCS15Handler {
      *
      * @return false if access rules where not read due to constant refresh tag.
      */
-    public synchronized boolean loadAccessControlRules(String secureElement) {
+    public synchronized boolean loadAccessControlRules(String secureElement) throws IOException {
         mSELabel = secureElement;
         Log.i(mTag, "- Loading " + mSELabel + " rules...");
         try {
             initACEntryPoint();
             return updateACRules();
+        } catch (IOException e) {
+            throw e;
         } catch (Exception e) {
             if (e instanceof MissingResourceException) {
                 // this indicates that no channel is left for accessing the SE element
