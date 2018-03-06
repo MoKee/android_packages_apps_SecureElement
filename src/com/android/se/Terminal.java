@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.NoSuchElementException;
 
 /**
@@ -248,7 +249,12 @@ public class Terminal {
         }
 
         Log.w(mTag, "Enable access control on basic channel for " + packageName);
-        ChannelAccess channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+        ChannelAccess channelAccess;
+        try {
+            channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+        } catch (MissingResourceException e) {
+            return null;
+        }
 
         synchronized (mLock) {
             if (mChannels.get(0) != null) {
@@ -331,7 +337,11 @@ public class Terminal {
         ChannelAccess channelAccess = null;
         if (packageName != null) {
             Log.w(mTag, "Enable access control on logical channel for " + packageName);
-            channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+            try {
+                channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+            } catch (MissingResourceException e) {
+                return null;
+            }
         }
 
         synchronized (mLock) {
@@ -529,6 +539,8 @@ public class Terminal {
                 channelAccess.setCallingPid(pid);
                 return channelAccess;
             } catch (IOException e) {
+                throw e;
+            } catch (MissingResourceException e) {
                 throw e;
             } catch (Exception e) {
                 throw new SecurityException("Exception in setUpChannelAccess()" + e);
