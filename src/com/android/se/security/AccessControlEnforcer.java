@@ -51,6 +51,7 @@ import com.android.se.security.ara.AraController;
 import com.android.se.security.arf.ArfController;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessControlException;
 import java.security.MessageDigest;
@@ -61,6 +62,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.MissingResourceException;
 
 /** Reads and Maintains the ARF and ARA access control for a particular Secure Element */
 public class AccessControlEnforcer {
@@ -263,8 +265,8 @@ public class AccessControlEnforcer {
     }
 
     /** Sets up the Channel Access for the given Package */
-    public ChannelAccess setUpChannelAccess(
-            byte[] aid, String packageName, boolean checkRefreshTag) {
+    public ChannelAccess setUpChannelAccess(byte[] aid, String packageName, boolean checkRefreshTag)
+            throws IOException, MissingResourceException {
         ChannelAccess channelAccess = null;
         // check result of channel access during initialization procedure
         if (mInitialChannelAccess.getAccess() == ChannelAccess.ACCESS.DENIED) {
@@ -291,7 +293,8 @@ public class AccessControlEnforcer {
     }
 
     private synchronized ChannelAccess internal_setUpChannelAccess(byte[] aid,
-            String packageName, boolean checkRefreshTag) {
+            String packageName, boolean checkRefreshTag) throws IOException,
+            MissingResourceException {
         if (packageName == null || packageName.isEmpty()) {
             throw new AccessControlException("package names must be specified");
         }
@@ -307,6 +310,10 @@ public class AccessControlEnforcer {
                 updateAccessRuleIfNeed();
             }
             return getAccessRule(aid, appCerts);
+        } catch (IOException e) {
+            throw e;
+        } catch (MissingResourceException e) {
+            throw e;
         } catch (Throwable exp) {
             throw new AccessControlException(exp.getMessage());
         }
@@ -378,7 +385,15 @@ public class AccessControlEnforcer {
     private synchronized boolean[] internal_isNfcEventAllowed(byte[] aid,
             String[] packageNames, boolean checkRefreshTag) {
         if (checkRefreshTag) {
-            updateAccessRuleIfNeed();
+            try {
+                updateAccessRuleIfNeed();
+            } catch (IOException e) {
+                throw new AccessControlException("Access-Control not found in "
+                        + mTerminal.getName());
+            } catch (MissingResourceException e) {
+                throw new AccessControlException("Access-Control not found in "
+                        + mTerminal.getName());
+            }
         }
 
         int i = 0;
@@ -404,18 +419,34 @@ public class AccessControlEnforcer {
         return nfcEventFlags;
     }
 
-    private void updateAccessRuleIfNeed() {
+    private void updateAccessRuleIfNeed() throws IOException {
         if (mUseAra && mAraController != null) {
             try {
                 mAraController.initialize();
                 mUseArf = false;
                 mFullAccess = false;
+            } catch (IOException e) {
+                // There was a communication error between the terminal and the SE.
+                // IOError shall be notified to the client application in this case.
+                throw e;
+            } catch (MissingResourceException e) {
+                // Failure in retrieving rules due to the lack of a new logical channel
+                // (and only this failure) should not result in a security exception.
+                throw e;
             } catch (Exception e) {
                 throw new AccessControlException("No ARA applet found in " + mTerminal.getName());
             }
         } else if (mUseArf && mArfController != null) {
             try {
                 mArfController.initialize();
+            } catch (IOException e) {
+                // There was a communication error between the terminal and the SE.
+                // IOError shall be notified to the client application in this case.
+                throw e;
+            } catch (MissingResourceException e) {
+                // Failure in retrieving rules due to the lack of a new logical channel
+                // (and only this failure) should not result in a security exception.
+                throw e;
             } catch (Exception e) {
                 Log.e(mTag, e.getMessage());
             }
