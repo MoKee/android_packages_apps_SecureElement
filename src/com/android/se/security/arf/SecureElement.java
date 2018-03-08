@@ -100,7 +100,8 @@ public class SecureElement {
      * @param aid Applet identifier
      * @return Handle to "Logical Channel" allocated by the SE; <code>0</code> if error occurred
      */
-    public Channel openLogicalArfChannel(byte[] aid) throws IOException, NoSuchElementException {
+    public Channel openLogicalArfChannel(byte[] aid) throws IOException, MissingResourceException,
+            NoSuchElementException {
         try {
             mArfChannel = mTerminalHandle.openLogicalChannelWithoutChannelAccess(aid);
             if (mArfChannel == null) {
@@ -109,6 +110,8 @@ public class SecureElement {
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
         } catch (IOException e) {
+            throw e;
+        } catch (MissingResourceException e) {
             throw e;
         } catch (NoSuchElementException e) {
             throw e;
