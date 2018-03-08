@@ -252,11 +252,7 @@ public class PKCS15Handler {
         try {
             initACEntryPoint();
             return updateACRules();
-        } catch (IOException e) {
-            throw e;
-        } catch (MissingResourceException e) {
-            throw e;
-        } catch (NoSuchElementException e) {
+        } catch (IOException | MissingResourceException | NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
             Log.e(mTag, mSELabel + " rules not correctly initialized! " + e.getLocalizedMessage());
