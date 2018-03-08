@@ -109,11 +109,7 @@ public class SecureElement {
             }
             setUpChannelAccess(mArfChannel);
             return mArfChannel;
-        } catch (IOException e) {
-            throw e;
-        } catch (MissingResourceException e) {
-            throw e;
-        } catch (NoSuchElementException e) {
+        } catch (IOException | MissingResourceException | NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
             Log.e(mTag, "Error opening logical channel " + e.getLocalizedMessage());
