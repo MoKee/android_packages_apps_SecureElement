@@ -136,10 +136,15 @@ public class Terminal {
         if (channel == null) {
             return;
         }
-        if (mIsConnected && !channel.isBasicChannel()) {
+        if (mIsConnected) {
             try {
                 byte status = mSEHal.closeChannel((byte) channel.getChannelNumber());
-                if (status != SecureElementStatus.SUCCESS) {
+                /* For Basic Channels, errors are expected.
+                 * Underlying implementations use this call as an indication when there
+                 * aren't any users actively using the channel, and the chip can go
+                 * into low power state.
+                 */
+                if (!channel.isBasicChannel() && status != SecureElementStatus.SUCCESS) {
                     Log.e(mTag, "Error closing channel " + channel.getChannelNumber());
                 }
             } catch (RemoteException e) {
