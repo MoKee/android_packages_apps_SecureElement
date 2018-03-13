@@ -63,6 +63,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.MissingResourceException;
+import java.util.NoSuchElementException;
 
 /** Reads and Maintains the ARF and ARA access control for a particular Secure Element */
 public class AccessControlEnforcer {
@@ -169,17 +170,19 @@ public class AccessControlEnforcer {
                 // ARA cannot be used since we got an exception during initialization
                 mUseAra = false;
                 denyMsg = e.getLocalizedMessage();
-                /* If the SE is a UICC then a possible explanation could simply
-                 * be due to the fact that the UICC is old and doesn't
-                 * support logical channel (and is not compliant with GP spec).
-                 * in this case we should simply act as if no ARA was available.
-                 *
-                 * Or if eSE doesn't have ARA applet then full access
-                 * should be permitted.
-                 */
-                if (mTerminal.getName().startsWith(SecureElementService.UICC_TERMINAL)
-                        || e instanceof UnsupportedOperationException) {
+                if (e instanceof NoSuchElementException) {
                     Log.i(mTag, "No ARA applet found in: " + mTerminal.getName());
+                } else if (mTerminal.getName().startsWith(SecureElementService.UICC_TERMINAL)) {
+                    // A possible explanation could simply be due to the fact that the UICC is old
+                    // and does not support logical channel (and is not compliant with GP spec).
+                    // We should simply act as if no ARA was available in this case.
+                    if (!mUseArf) {
+                        // Only ARA was the candidate to retrieve access rules,
+                        // but it is not 100% sure if the expected ARA really does not exist.
+                        // Full access should not be granted in this case.
+                        mFullAccess = false;
+                        status = false;
+                    }
                 } else {
                     // ARA is available but doesn't work properly.
                     // We are going to disable everything per security req.
@@ -212,9 +215,19 @@ public class AccessControlEnforcer {
             } catch (Exception e) {
                 // ARF cannot be used since we got an exception
                 mUseArf = false;
-                status = false;
                 denyMsg = e.getLocalizedMessage();
                 Log.e(mTag, e.getMessage());
+                if (mFullAccess) {
+                    if (!(e instanceof NoSuchElementException)) {
+                        // It is not 100% sure if the expected ARF really does not exist.
+                        // No ARF might be due to a kind of temporary problem like missing resource,
+                        // so full access should not be granted in this case.
+                        mFullAccess = false;
+                        status = false;
+                    }
+                } else {
+                    status = false;
+                }
             }
         }
 
