@@ -240,7 +240,8 @@ public class Terminal {
      * Opens a Basic Channel with the given AID and P2 paramters
      */
     public Channel openBasicChannel(SecureElementSession session, byte[] aid, byte p2,
-            ISecureElementListener listener, String packageName, int pid) throws IOException {
+            ISecureElementListener listener, String packageName, int pid) throws IOException,
+            NoSuchElementException {
         if (aid != null && aid.length == 0) {
             aid = null;
         } else if (aid != null && (aid.length < 5 || aid.length > 16)) {
@@ -292,8 +293,7 @@ public class Terminal {
             } else if (status[0] == SecureElementStatus.IOERROR) {
                 throw new IOException("OpenBasicChannel() failed");
             } else if (status[0] == SecureElementStatus.NO_SUCH_ELEMENT_ERROR) {
-                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR,
-                        "OpenBasicChannel() failed");
+                throw new NoSuchElementException("OpenBasicChannel() failed");
             }
 
             Channel basicChannel = new Channel(session, this, 0, selectResponse,
@@ -318,7 +318,8 @@ public class Terminal {
     /**
      * Opens a logical Channel without Channel Access initialization.
      */
-    public Channel openLogicalChannelWithoutChannelAccess(byte[] aid) throws IOException {
+    public Channel openLogicalChannelWithoutChannelAccess(byte[] aid) throws IOException,
+            NoSuchElementException {
         return openLogicalChannel(null, aid, (byte) 0x00, null, null, 0);
     }
 
@@ -326,7 +327,8 @@ public class Terminal {
      * Opens a logical Channel with AID.
      */
     public Channel openLogicalChannel(SecureElementSession session, byte[] aid, byte p2,
-            ISecureElementListener listener, String packageName, int pid) throws IOException {
+            ISecureElementListener listener, String packageName, int pid) throws IOException,
+            NoSuchElementException {
         if (aid != null && aid.length == 0) {
             aid = null;
         } else if (aid != null && (aid.length < 5 || aid.length > 16)) {
@@ -370,8 +372,7 @@ public class Terminal {
             } else if (status[0] == SecureElementStatus.IOERROR) {
                 throw new IOException("OpenLogicalChannel() failed");
             } else if (status[0] == SecureElementStatus.NO_SUCH_ELEMENT_ERROR) {
-                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR,
-                        "OpenLogicalChannel() failed");
+                throw new NoSuchElementException("OpenLogicalChannel() failed");
             }
             if (responseArray[0].channelNumber <= 0 || status[0] != SecureElementStatus.SUCCESS) {
                 return null;
