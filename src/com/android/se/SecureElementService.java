@@ -260,6 +260,9 @@ public final class SecureElementService extends Service {
                 throw new IllegalStateException("Session is closed");
             } else if (listener == null) {
                 throw new NullPointerException("listener must not be null");
+            } else if (mReader.getTerminal().getName().startsWith(
+                    SecureElementService.UICC_TERMINAL)) {
+                return null;
             } else if ((p2 != 0x00) && (p2 != 0x04) && (p2 != 0x08)
                     && (p2 != (byte) 0x0C)) {
                 throw new UnsupportedOperationException("p2 not supported: "
@@ -274,6 +277,8 @@ public final class SecureElementService extends Service {
                         packageName, Binder.getCallingPid());
             } catch (IOException e) {
                 throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            } catch (NoSuchElementException e) {
+                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR, e.getMessage());
             }
 
             if (channel == null) {
@@ -294,6 +299,9 @@ public final class SecureElementService extends Service {
                 throw new IllegalStateException("Session is closed");
             } else if (listener == null) {
                 throw new NullPointerException("listener must not be null");
+            } else if (((aid == null) || (aid.length == 0)) && mReader.getTerminal().getName()
+                    .startsWith(SecureElementService.UICC_TERMINAL)) {
+                return null;
             } else if ((p2 != 0x00) && (p2 != 0x04) && (p2 != 0x08)
                     && (p2 != (byte) 0x0C)) {
                 throw new UnsupportedOperationException("p2 not supported: "
@@ -308,6 +316,8 @@ public final class SecureElementService extends Service {
                         packageName, Binder.getCallingPid());
             } catch (IOException e) {
                 throw new ServiceSpecificException(SEService.IO_ERROR, e.getMessage());
+            } catch (NoSuchElementException e) {
+                throw new ServiceSpecificException(SEService.NO_SUCH_ELEMENT_ERROR, e.getMessage());
             }
 
             if (channel == null) {

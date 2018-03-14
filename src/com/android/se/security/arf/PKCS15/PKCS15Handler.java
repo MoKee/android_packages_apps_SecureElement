@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.security.AccessControlException;
 import java.security.cert.CertificateException;
 import java.util.MissingResourceException;
+import java.util.NoSuchElementException;
 
 /** Handles PKCS#15 topology */
 public class PKCS15Handler {
@@ -89,7 +90,8 @@ public class PKCS15Handler {
 
     /** Updates "Access Control Rules" */
     private boolean updateACRules() throws CertificateException, IOException,
-            MissingResourceException, PKCS15Exception, SecureElementException {
+            MissingResourceException, NoSuchElementException, PKCS15Exception,
+            SecureElementException {
         byte[] ACRulesPath = null;
         if (!mACMFfound) {
             mSEHandle.resetAccessRules();
@@ -140,13 +142,23 @@ public class PKCS15Handler {
     }
 
     /** Initializes "Access Control" entry point [ACMain] */
-    private void initACEntryPoint()
-            throws IOException, PKCS15Exception, MissingResourceException, SecureElementException,
-            CertificateException {
+    private void initACEntryPoint() throws CertificateException, IOException,
+            MissingResourceException, NoSuchElementException, PKCS15Exception,
+            SecureElementException {
 
         byte[] DODFPath = null;
+        boolean absent = true;
+
         for (int ind = 0; ind < CONTAINER_AIDS.length; ind++) {
-            if (selectACRulesContainer(CONTAINER_AIDS[ind])) {
+            try {
+                boolean result = selectACRulesContainer(CONTAINER_AIDS[ind]);
+                // NoSuchElementException was not thrown by the terminal.
+                // The terminal confirmed that the specified applet or PKCS#15 ADF exists
+                // or could not determine that it does not exists on the secure element.
+                absent = false;
+                if (!result) {
+                    continue;
+                }
 
                 byte[] acMainPath = null;
                 if (mACMainPath == null) {
@@ -169,7 +181,15 @@ public class PKCS15Handler {
                 }
                 mACMainObject = new EFACMain(mSEHandle, acMainPath);
                 break;
+            } catch (NoSuchElementException e) {
+                // The specified applet or PKCS#15 ADF does not exist.
+                // Let us check the next candidate.
             }
+        }
+
+        if (absent) {
+            // All the candidate applet and/or PKCS#15 ADF cannot be found on the secure element.
+            throw new NoSuchElementException("No ARF exists");
         }
     }
 
@@ -179,8 +199,8 @@ public class PKCS15Handler {
      * @param AID Identification of the GPAC Applet/PKCS#15 ADF; <code>null</code> for EF_DIR file
      * @return <code>true</code> when container is active; <code>false</code> otherwise
      */
-    private boolean selectACRulesContainer(byte[] aid)
-            throws IOException, MissingResourceException, PKCS15Exception, SecureElementException {
+    private boolean selectACRulesContainer(byte[] aid) throws IOException, MissingResourceException,
+            NoSuchElementException, PKCS15Exception, SecureElementException {
         if (aid == null) {
             mArfChannel = mSEHandle.openLogicalArfChannel(new byte[]{});
             if (mArfChannel != null) {
@@ -198,7 +218,7 @@ public class PKCS15Handler {
                     Log.i(mTag, "Cannot use ARF: cannot select PKCS#15 directory via EF Dir");
                     // TODO: Here it might be possible to set a default path
                     // so that SIMs without EF-Dir could be supported.
-                    throw new PKCS15Exception("Cannot select PKCS#15 directory via EF Dir");
+                    throw new NoSuchElementException("Cannot select PKCS#15 directory via EF Dir");
                 }
             }
         } else {
@@ -226,7 +246,7 @@ public class PKCS15Handler {
      * @return false if access rules where not read due to constant refresh tag.
      */
     public synchronized boolean loadAccessControlRules(String secureElement) throws IOException,
-            MissingResourceException {
+            MissingResourceException, NoSuchElementException {
         mSELabel = secureElement;
         Log.i(mTag, "- Loading " + mSELabel + " rules...");
         try {
@@ -235,6 +255,8 @@ public class PKCS15Handler {
         } catch (IOException e) {
             throw e;
         } catch (MissingResourceException e) {
+            throw e;
+        } catch (NoSuchElementException e) {
             throw e;
         } catch (Exception e) {
             Log.e(mTag, mSELabel + " rules not correctly initialized! " + e.getLocalizedMessage());
