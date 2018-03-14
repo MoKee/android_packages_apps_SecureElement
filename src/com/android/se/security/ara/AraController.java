@@ -52,6 +52,7 @@ import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.MissingResourceException;
+import java.util.NoSuchElementException;
 
 /** Reads and Maintains the ARA access for the Secure Element */
 public class AraController {
@@ -86,7 +87,7 @@ public class AraController {
      * Initialize the AraController, reads the refresh tag.
      * and fetch the access rules
      */
-    public synchronized void initialize() throws IOException {
+    public synchronized void initialize() throws IOException, NoSuchElementException {
         Channel channel = mTerminal.openLogicalChannelWithoutChannelAccess(getAraMAid());
         if (channel == null) {
             throw new MissingResourceException("could not open channel", "", "");
