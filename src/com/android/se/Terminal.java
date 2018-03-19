@@ -84,7 +84,11 @@ public class Terminal {
                         mAccessControlEnforcer.reset();
                     }
                 } else {
-                    initializeAccessControl();
+                    try {
+                        initializeAccessControl();
+                    } catch (Exception e) {
+                        // ignore
+                    }
                     synchronized (mLock) {
                         mDefaultApplicationSelectedOnBasicChannel = true;
                     }
@@ -258,7 +262,7 @@ public class Terminal {
         Log.w(mTag, "Enable access control on basic channel for " + packageName);
         ChannelAccess channelAccess;
         try {
-            channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+            channelAccess = setUpChannelAccess(aid, packageName, pid);
         } catch (MissingResourceException e) {
             return null;
         }
@@ -346,7 +350,7 @@ public class Terminal {
         if (packageName != null) {
             Log.w(mTag, "Enable access control on logical channel for " + packageName);
             try {
-                channelAccess = setUpChannelAccess(aid, packageName, true, pid);
+                channelAccess = setUpChannelAccess(aid, packageName, pid);
             } catch (MissingResourceException e) {
                 return null;
             }
@@ -493,14 +497,19 @@ public class Terminal {
     /**
      * Checks if the application is authorized to receive the transaction event.
      */
-    public boolean[] isNfcEventAllowed(
-            PackageManager packageManager,
-            byte[] aid,
-            String[] packageNames,
-            boolean checkRefreshTag) {
+    public boolean[] isNfcEventAllowed(PackageManager packageManager, byte[] aid,
+            String[] packageNames) {
+        boolean checkRefreshTag = true;
         if (mAccessControlEnforcer == null) {
-            Log.e(mTag, "Access Control Enforcer not properly set up");
-            initializeAccessControl();
+            try {
+                initializeAccessControl();
+                // Just finished to initialize the access control enforcer.
+                // It is too much to check the refresh tag in this case.
+                checkRefreshTag = false;
+            } catch (Exception e) {
+                Log.i(mTag, "isNfcEventAllowed Exception: " + e.getMessage());
+                return null;
+            }
         }
         mAccessControlEnforcer.setPackageManager(packageManager);
 
@@ -530,11 +539,14 @@ public class Terminal {
     /**
      * Initialize the Access Control and set up the channel access.
      */
-    private ChannelAccess setUpChannelAccess(byte[] aid, String packageName,
-            boolean checkRefreshTag, int pid) throws IOException {
+    private ChannelAccess setUpChannelAccess(byte[] aid, String packageName, int pid)
+            throws IOException, MissingResourceException {
+        boolean checkRefreshTag = true;
         if (mAccessControlEnforcer == null) {
-            Log.e(mTag, "Access Control Enforcer not properly set up");
             initializeAccessControl();
+            // Just finished to initialize the access control enforcer.
+            // It is too much to check the refresh tag in this case.
+            checkRefreshTag = false;
         }
         mAccessControlEnforcer.setPackageManager(mContext.getPackageManager());
 
@@ -545,9 +557,7 @@ public class Terminal {
                                 checkRefreshTag);
                 channelAccess.setCallingPid(pid);
                 return channelAccess;
-            } catch (IOException e) {
-                throw e;
-            } catch (MissingResourceException e) {
+            } catch (IOException | MissingResourceException e) {
                 throw e;
             } catch (Exception e) {
                 throw new SecurityException("Exception in setUpChannelAccess()" + e);
@@ -558,12 +568,22 @@ public class Terminal {
     /**
      * Initializes the Access Control for this Terminal
      */
-    private synchronized void initializeAccessControl() {
+    private synchronized void initializeAccessControl() throws IOException,
+            MissingResourceException {
         synchronized (mLock) {
             if (mAccessControlEnforcer == null) {
                 mAccessControlEnforcer = new AccessControlEnforcer(this);
             }
-            mAccessControlEnforcer.initialize(true);
+            try {
+                mAccessControlEnforcer.initialize();
+            } catch (IOException | MissingResourceException e) {
+                // Retrieving access rules failed because of an IO error happened between
+                // the terminal and the secure element or the lack of a logical channel available.
+                // It might be a temporary failure, so the terminal shall attempt to cache
+                // the access rules again later.
+                mAccessControlEnforcer = null;
+                throw e;
+            }
         }
     }
 
