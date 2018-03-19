@@ -91,7 +91,7 @@ public final class SecureElementService extends Service {
                         throw new IllegalArgumentException("package names not specified");
                     }
                     Terminal terminal = getTerminal(reader);
-                    return terminal.isNfcEventAllowed(getPackageManager(), aid, packageNames, true);
+                    return terminal.isNfcEventAllowed(getPackageManager(), aid, packageNames);
                 }
 
                 @Override
