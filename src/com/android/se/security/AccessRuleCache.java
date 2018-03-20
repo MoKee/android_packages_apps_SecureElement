@@ -273,7 +273,7 @@ public class AccessRuleCache {
                     // let's take care about the undefined rules, according to the GP specification:
                     ChannelAccess ca = mRuleCache.get(ref_do);
                     if (ca.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED) {
-                        ca.setApduAccess(ChannelAccess.ACCESS.ALLOWED);
+                        ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
                     }
                     if ((ca.getNFCEventAccess() == ChannelAccess.ACCESS.UNDEFINED)
                             && (ca.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
@@ -328,7 +328,7 @@ public class AccessRuleCache {
                     // let's take care about the undefined rules, according to the GP specification:
                     ChannelAccess ca = mRuleCache.get(ref_do);
                     if (ca.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED) {
-                        ca.setApduAccess(ChannelAccess.ACCESS.ALLOWED);
+                        ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
                     }
                     if ((ca.getNFCEventAccess() == ChannelAccess.ACCESS.UNDEFINED)
                             && (ca.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
