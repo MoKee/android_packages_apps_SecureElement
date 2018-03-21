@@ -138,7 +138,7 @@ public class AccessControlEnforcer {
     }
 
     /** Initializes the Access Control for the Secure Element */
-    public synchronized boolean initialize(boolean loadAtStartup) {
+    public synchronized void initialize() throws IOException, MissingResourceException {
         boolean status = true;
         String denyMsg = "";
         // allow access to set up access control for a channel
@@ -166,6 +166,8 @@ public class AccessControlEnforcer {
                 // disable other access methods
                 mUseArf = false;
                 mFullAccess = false;
+            } catch (IOException | MissingResourceException e) {
+                throw e;
             } catch (Exception e) {
                 // ARA cannot be used since we got an exception during initialization
                 mUseAra = false;
@@ -212,6 +214,8 @@ public class AccessControlEnforcer {
                 // disable other access methods
                 Log.i(mTag, "ARF rules are used for:" + mTerminal.getName());
                 mFullAccess = false;
+            } catch (IOException | MissingResourceException e) {
+                throw e;
             } catch (Exception e) {
                 // ARF cannot be used since we got an exception
                 mUseArf = false;
@@ -240,7 +244,6 @@ public class AccessControlEnforcer {
         }
 
         mRulesRead = status;
-        return status;
     }
 
     /** Check if the Channel has permission for the given APDU */
@@ -323,9 +326,7 @@ public class AccessControlEnforcer {
                 updateAccessRuleIfNeed();
             }
             return getAccessRule(aid, appCerts);
-        } catch (IOException e) {
-            throw e;
-        } catch (MissingResourceException e) {
+        } catch (IOException | MissingResourceException e) {
             throw e;
         } catch (Throwable exp) {
             throw new AccessControlException(exp.getMessage());
@@ -400,10 +401,7 @@ public class AccessControlEnforcer {
         if (checkRefreshTag) {
             try {
                 updateAccessRuleIfNeed();
-            } catch (IOException e) {
-                throw new AccessControlException("Access-Control not found in "
-                        + mTerminal.getName());
-            } catch (MissingResourceException e) {
+            } catch (IOException | MissingResourceException e) {
                 throw new AccessControlException("Access-Control not found in "
                         + mTerminal.getName());
             }
@@ -438,13 +436,10 @@ public class AccessControlEnforcer {
                 mAraController.initialize();
                 mUseArf = false;
                 mFullAccess = false;
-            } catch (IOException e) {
-                // There was a communication error between the terminal and the SE.
-                // IOError shall be notified to the client application in this case.
-                throw e;
-            } catch (MissingResourceException e) {
-                // Failure in retrieving rules due to the lack of a new logical channel
-                // (and only this failure) should not result in a security exception.
+            } catch (IOException | MissingResourceException e) {
+                // There was a communication error between the terminal and the secure element
+                // or failure in retrieving rules due to the lack of a new logical channel.
+                // These errors must be distinguished from other ones.
                 throw e;
             } catch (Exception e) {
                 throw new AccessControlException("No ARA applet found in " + mTerminal.getName());
@@ -452,13 +447,10 @@ public class AccessControlEnforcer {
         } else if (mUseArf && mArfController != null) {
             try {
                 mArfController.initialize();
-            } catch (IOException e) {
-                // There was a communication error between the terminal and the SE.
-                // IOError shall be notified to the client application in this case.
-                throw e;
-            } catch (MissingResourceException e) {
-                // Failure in retrieving rules due to the lack of a new logical channel
-                // (and only this failure) should not result in a security exception.
+            } catch (IOException | MissingResourceException e) {
+                // There was a communication error between the terminal and the secure element
+                // or failure in retrieving rules due to the lack of a new logical channel.
+                // These errors must be distinguished from other ones.
                 throw e;
             } catch (Exception e) {
                 Log.e(mTag, e.getMessage());
