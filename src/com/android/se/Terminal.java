@@ -305,16 +305,9 @@ public class Terminal {
                 throw new NoSuchElementException("OpenBasicChannel() failed");
             }
 
-            Channel basicChannel = new Channel(session, this, 0, selectResponse,
+            Channel basicChannel = new Channel(session, this, 0, selectResponse, aid,
                     listener);
             basicChannel.setChannelAccess(channelAccess);
-
-            byte[] selectedAid = getSelectedAid(selectResponse);
-            if (selectedAid != null) {
-                basicChannel.hasSelectedAid(true, selectedAid);
-            } else {
-                basicChannel.hasSelectedAid((aid != null) ? true : false, aid);
-            }
 
             if (aid != null) {
                 mDefaultApplicationSelectedOnBasicChannel = false;
@@ -389,15 +382,8 @@ public class Terminal {
             int channelNumber = responseArray[0].channelNumber;
             byte[] selectResponse = arrayListToByteArray(responseArray[0].selectResponse);
             Channel logicalChannel = new Channel(session, this, channelNumber,
-                    selectResponse, listener);
+                    selectResponse, aid, listener);
             logicalChannel.setChannelAccess(channelAccess);
-
-            byte[] selectedAid = selectedAid = getSelectedAid(selectResponse);
-            if (selectedAid != null) {
-                logicalChannel.hasSelectedAid(true, selectedAid);
-            } else {
-                logicalChannel.hasSelectedAid((aid != null) ? true : false, aid);
-            }
 
             mChannels.put(channelNumber, logicalChannel);
             return logicalChannel;
@@ -589,31 +575,6 @@ public class Terminal {
 
     public AccessControlEnforcer getAccessControlEnforcer() {
         return mAccessControlEnforcer;
-    }
-
-    private byte[] getSelectedAid(byte[] selectResponse) {
-        byte[] selectedAid = null;
-        if ((selectResponse != null && selectResponse.length >= 2)
-                && (selectResponse.length == (selectResponse[1] + 4))
-                && // header(2) + SW(2)
-                ((selectResponse[0] == (byte) 0x62)
-                        || (selectResponse[0] == (byte) 0x6F))) { // FCP or FCI template
-            int nextTlv = 2;
-            while (selectResponse.length > nextTlv) {
-                if (selectResponse[nextTlv] == (byte) 0x84) {
-                    if (selectResponse.length >= (nextTlv + selectResponse[nextTlv + 1] + 2)) {
-                        selectedAid = new byte[selectResponse[nextTlv + 1]];
-                        System.arraycopy(
-                                selectResponse, nextTlv + 2, selectedAid, 0,
-                                selectResponse[nextTlv + 1]);
-                    }
-                    break;
-                } else {
-                    nextTlv += 2 + selectResponse[nextTlv + 1];
-                }
-            }
-        }
-        return selectedAid;
     }
 
     /** Dump data for debug purpose . */
