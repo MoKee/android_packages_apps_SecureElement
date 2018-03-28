@@ -51,11 +51,10 @@ public class Channel implements IBinder.DeathRecipient {
     private byte[] mSelectResponse;
     private ChannelAccess mChannelAccess = null;
     private int mCallingPid = 0;
-    private boolean mHasSelectedAid = false;
     private byte[] mAid = null;
 
     Channel(SecureElementSession session, Terminal terminal, int channelNumber,
-            byte[] selectResponse, ISecureElementListener listener) {
+            byte[] selectResponse, byte[] aid, ISecureElementListener listener) {
         if (terminal == null) {
             throw new IllegalArgumentException("Arguments can't be null");
         }
@@ -64,6 +63,7 @@ public class Channel implements IBinder.DeathRecipient {
         mIsClosed = false;
         mSelectResponse = selectResponse;
         mChannelNumber = channelNumber;
+        mAid = aid;
         if (listener != null) {
             try {
                 mBinder = listener.asBinder();
@@ -91,7 +91,7 @@ public class Channel implements IBinder.DeathRecipient {
      */
     public synchronized void close() {
         synchronized (mLock) {
-            if (isBasicChannel() && hasSelectedAid()) {
+            if (isBasicChannel()) {
                 Log.i(mTag, "Close basic channel - Select without AID ...");
                 mTerminal.selectDefaultApplication();
             }
@@ -248,13 +248,7 @@ public class Channel implements IBinder.DeathRecipient {
      * @return boolean.
      */
     public boolean hasSelectedAid() {
-        return mHasSelectedAid;
-    }
-
-    /** set selected aid flag and aid (may be null). */
-    public void hasSelectedAid(boolean has, byte[] aid) {
-        mHasSelectedAid = has;
-        mAid = aid;
+        return (mAid != null);
     }
 
     public int getChannelNumber() {
@@ -273,7 +267,7 @@ public class Channel implements IBinder.DeathRecipient {
      * implementation.
      */
     public byte[] getSelectResponse() {
-        return (mHasSelectedAid ? mSelectResponse : null);
+        return (hasSelectedAid() ? mSelectResponse : null);
     }
 
     public boolean isBasicChannel() {
