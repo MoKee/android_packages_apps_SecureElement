@@ -89,6 +89,11 @@ public class Terminal {
                         mAccessControlEnforcer.reset();
                     }
                 } else {
+                    // If any logical channel in use is in the channel list, it should be closed
+                    // because the access control enfocer allowed to open it by checking the access
+                    // rules retrieved before. Now we are going to retrieve the rules again and
+                    // the new rules can be different from the previous ones.
+                    closeChannels();
                     try {
                         initializeAccessControl();
                     } catch (Exception e) {
@@ -213,14 +218,13 @@ public class Terminal {
     }
 
     /**
-     * This method is called in SecureElementService:onDestroy to clean up
-     * all open channels.
+     * Cleans up all the channels in use.
      */
     public synchronized void closeChannels() {
         Collection<Channel> col = mChannels.values();
         Channel[] channelList = col.toArray(new Channel[col.size()]);
         for (Channel channel : channelList) {
-            closeChannel(channel);
+            channel.close();
         }
     }
 
