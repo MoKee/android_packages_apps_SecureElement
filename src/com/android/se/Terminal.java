@@ -243,21 +243,6 @@ public class Terminal {
         }
     }
 
-    /**
-     * Closes the terminal.
-     */
-    public void close() {
-        synchronized (mLock) {
-            if (mSEHal != null) {
-                try {
-                    mSEHal.unlinkToDeath(mDeathRecipient);
-                } catch (RemoteException e) {
-                    // ignore
-                }
-            }
-        }
-    }
-
     public String getName() {
         return mName;
     }
