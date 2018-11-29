@@ -155,7 +155,7 @@ public class Terminal {
      */
     public void initialize() throws NoSuchElementException, RemoteException {
         synchronized (mLock) {
-            mSEHal = ISecureElement.getService(mName);
+            mSEHal = ISecureElement.getService(mName, true);
             if (mSEHal == null) {
                 throw new NoSuchElementException("No HAL is provided for " + mName);
             }
