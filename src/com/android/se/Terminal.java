@@ -40,6 +40,7 @@ import android.se.omapi.ISecureElementReader;
 import android.se.omapi.ISecureElementSession;
 import android.se.omapi.SEService;
 import android.util.Log;
+import android.util.StatsLog;
 
 import com.android.se.SecureElementService.SecureElementSession;
 import com.android.se.internal.ByteArrayConverter;
@@ -105,6 +106,11 @@ public class Terminal {
                 if (mAccessControlEnforcer != null) {
                     mAccessControlEnforcer.reset();
                 }
+                StatsLog.write(
+                        StatsLog.SE_STATE_CHANGED,
+                        StatsLog.SE_STATE_CHANGED__STATE__DISCONNECTED,
+                        reason,
+                        mName);
             } else {
                 // If any logical channel in use is in the channel list, it should be closed
                 // because the access control enfocer allowed to open it by checking the access
@@ -117,6 +123,11 @@ public class Terminal {
                     // ignore
                 }
                 mDefaultApplicationSelectedOnBasicChannel = true;
+                StatsLog.write(
+                        StatsLog.SE_STATE_CHANGED,
+                        StatsLog.SE_STATE_CHANGED__STATE__CONNECTED,
+                        reason,
+                        mName);
             }
         }
     }
@@ -125,6 +136,11 @@ public class Terminal {
         @Override
         public void serviceDied(long cookie) {
             Log.e(mTag, mName + " died");
+            StatsLog.write(
+                    StatsLog.SE_STATE_CHANGED,
+                    StatsLog.SE_STATE_CHANGED__STATE__HALCRASH,
+                    "HALCRASH",
+                    mName);
             synchronized (mLock) {
                 mIsConnected = false;
                 if (mAccessControlEnforcer != null) {
@@ -194,6 +210,11 @@ public class Terminal {
             mSEHal.linkToDeath(mDeathRecipient, 0);
         }
         Log.i(mTag, mName + " was initialized");
+        StatsLog.write(
+                StatsLog.SE_STATE_CHANGED,
+                StatsLog.SE_STATE_CHANGED__STATE__INITIALIZED,
+                "INIT",
+                mName);
     }
 
     private ArrayList<Byte> byteArrayToArrayList(byte[] array) {
@@ -359,6 +380,11 @@ public class Terminal {
         }
 
         Log.w(mTag, "Enable access control on basic channel for " + packageName);
+        StatsLog.write(
+                StatsLog.SE_OMAPI_REPORTED,
+                StatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
+                mName,
+                packageName);
         ChannelAccess channelAccess;
         try {
             channelAccess = setUpChannelAccess(aid, packageName, pid);
@@ -441,6 +467,11 @@ public class Terminal {
         ChannelAccess channelAccess = null;
         if (packageName != null) {
             Log.w(mTag, "Enable access control on logical channel for " + packageName);
+            StatsLog.write(
+                    StatsLog.SE_OMAPI_REPORTED,
+                    StatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
+                    mName,
+                    packageName);
             try {
                 channelAccess = setUpChannelAccess(aid, packageName, pid);
             } catch (MissingResourceException e) {
