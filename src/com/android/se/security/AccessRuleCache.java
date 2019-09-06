@@ -78,13 +78,17 @@ public class AccessRuleCache {
     private static ChannelAccess mapArDo2ChannelAccess(AR_DO arDo) {
         ChannelAccess channelAccess = new ChannelAccess();
 
+        // Missing access rule attribute shall be interpreted as ALWAYS or NEVER
+        // after the result of the rule conflict resolution and combination is processed.
+        // See Table G-1 in GP SEAC v1.1 Annex G.
+        //
+        // GP SEAC v1.0 also indicates the same rule in Annex D.
+        // Combined rule of APDU (ALWAYS) and NFC (ALWAYS) shall be APDU (ALWAYS) + NFC (ALWAYS).
+
         // check apdu access allowance
         if (arDo.getApduArDo() != null) {
-            // first if there is a rule for access, reset the general deny flag.
-            channelAccess.setAccess(ChannelAccess.ACCESS.ALLOWED, "");
-            channelAccess.setUseApduFilter(false);
-
             if (arDo.getApduArDo().isApduAllowed()) {
+                channelAccess.setAccess(ChannelAccess.ACCESS.ALLOWED, "");
                 // check the apdu filter
                 ArrayList<byte[]> apduHeaders = arDo.getApduArDo().getApduHeaderList();
                 ArrayList<byte[]> filterMasks = arDo.getApduArDo().getFilterMaskList();
@@ -103,10 +107,12 @@ public class AccessRuleCache {
                 }
             } else {
                 // apdu access is not allowed at all.
+                channelAccess.setAccess(ChannelAccess.ACCESS.DENIED,
+                        "NEVER is explicitly specified as the APDU access rule policy");
                 channelAccess.setApduAccess(ChannelAccess.ACCESS.DENIED);
             }
         } else {
-            channelAccess.setAccess(ChannelAccess.ACCESS.DENIED, "No APDU access rule available.!");
+            // It is too early to interpret the missing APDU access rule attribute as NEVER.
         }
 
         // check for NFC Event allowance
@@ -116,9 +122,9 @@ public class AccessRuleCache {
                             ? ChannelAccess.ACCESS.ALLOWED
                             : ChannelAccess.ACCESS.DENIED);
         } else {
-            // GP says that by default NFC should have the same right as for APDU access
-            channelAccess.setNFCEventAccess(channelAccess.getApduAccess());
+            // It is too early to interpret the missing NFC access rule attribute. Keep UNDEFINED.
         }
+
         return channelAccess;
     }
 
@@ -153,72 +159,47 @@ public class AccessRuleCache {
             ChannelAccess ca = mRuleCache.get(refDo);
 
             // if new ac condition is more restrictive then use their settings
+            // DENIED > ALLOWED > UNDEFINED
 
-            if ((channelAccess.getAccess() == ChannelAccess.ACCESS.DENIED)
-                    || (ca.getAccess() == ChannelAccess.ACCESS.DENIED)) {
-                ca.setAccess(ChannelAccess.ACCESS.DENIED, channelAccess.getReason());
-            } else if ((channelAccess.getAccess() == ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setAccess(ca.getAccess(), ca.getReason());
-            } else if ((channelAccess.getAccess() != ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getAccess() == ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setAccess(channelAccess.getAccess(), channelAccess.getReason());
-            } else {
-                ca.setAccess(ChannelAccess.ACCESS.ALLOWED, ca.getReason());
+            if (ca.getAccess() != ChannelAccess.ACCESS.DENIED) {
+                if (channelAccess.getAccess() == ChannelAccess.ACCESS.DENIED) {
+                    ca.setAccess(ChannelAccess.ACCESS.DENIED, channelAccess.getReason());
+                } else if (channelAccess.getAccess() == ChannelAccess.ACCESS.ALLOWED) {
+                    ca.setAccess(ChannelAccess.ACCESS.ALLOWED, "");
+                }
             }
 
-            // if new rule says NFC is denied then use it
-            // if current rule as undefined NFC rule then use setting of new rule.
-            // current NFC    new NFC     resulting NFC
-            // UNDEFINED      x           x
-            // ALLOWED        !DENIED     ALLOWED
-            // ALLOWED        DENIED      DENIED
-            // DENIED         !DENIED     DENIED
-            // DENIED         DENIED      DENIED
+            // Only the rule with the highest priority shall be applied if the rules conflict.
+            // NFC (NEVER) > NFC (ALWAYS) > No NFC attribute
 
-            if ((channelAccess.getNFCEventAccess() == ChannelAccess.ACCESS.DENIED)
-                    || (ca.getNFCEventAccess() == ChannelAccess.ACCESS.DENIED)) {
-                ca.setNFCEventAccess(ChannelAccess.ACCESS.DENIED);
-            } else if ((channelAccess.getNFCEventAccess() == ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getNFCEventAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setNFCEventAccess(ca.getNFCEventAccess());
-            } else if ((channelAccess.getNFCEventAccess() != ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getNFCEventAccess() == ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setNFCEventAccess(channelAccess.getNFCEventAccess());
-            } else {
-                ca.setNFCEventAccess(ChannelAccess.ACCESS.ALLOWED);
-            }
-            // if new rule says APUD is denied then use it
-            // if current rule as undefined APDU rule then use setting of new rule.
-            // current APDU  new APDU    resulting APDU
-            // UNDEFINED     x           x
-            // ALLOWED       !DENIED     ALLOWED
-            // ALLOWED       DENIED      DENIED
-            // DENIED        !DENIED     DENIED
-            // DENEID        DENIED      DENIED
-
-            if ((channelAccess.getApduAccess() == ChannelAccess.ACCESS.DENIED)
-                    || (ca.getApduAccess() == ChannelAccess.ACCESS.DENIED)) {
-                ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
-            } else if ((channelAccess.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setApduAccess(ca.getApduAccess());
-            } else if ((channelAccess.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED)
-                    && !channelAccess.isUseApduFilter()) {
-                ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
-            } else if ((channelAccess.getApduAccess() != ChannelAccess.ACCESS.UNDEFINED)
-                    && (ca.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED)) {
-                ca.setApduAccess(channelAccess.getApduAccess());
-            } else {
-                ca.setApduAccess(ChannelAccess.ACCESS.ALLOWED);
+            if (ca.getNFCEventAccess() != ChannelAccess.ACCESS.DENIED) {
+                if (channelAccess.getNFCEventAccess() == ChannelAccess.ACCESS.DENIED) {
+                    ca.setNFCEventAccess(ChannelAccess.ACCESS.DENIED);
+                } else if (channelAccess.getNFCEventAccess() == ChannelAccess.ACCESS.ALLOWED) {
+                    ca.setNFCEventAccess(ChannelAccess.ACCESS.ALLOWED);
+                }
             }
 
-            // put APDU filter together if resulting APDU access is allowed.
-            if ((ca.getApduAccess() == ChannelAccess.ACCESS.ALLOWED)
-                    || (ca.getApduAccess() == ChannelAccess.ACCESS.UNDEFINED)) {
-                Log.i(mTag, "Merged Access Rule:  APDU filter together");
+            // Only the rule with the highest priority shall be applied if the rules conflict.
+            // APDU (NEVER) > APDU (Filter) > APDU (ALWAYS) > No APDU attribute
+
+            if (ca.getApduAccess() != ChannelAccess.ACCESS.DENIED) {
+                if (channelAccess.getApduAccess() == ChannelAccess.ACCESS.DENIED) {
+                    ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
+                } else if (ca.isUseApduFilter() || channelAccess.isUseApduFilter()) {
+                    // In order to differentiate APDU (Filter) from APDU (ALWAYS) clearly,
+                    // check if the combined rule will have APDU filter here
+                    // and avoid changing APDU access from UNDEFINED in APDU (Filter) case.
+                    // APDU filters combination itself will be done in the next process below.
+                } else if (channelAccess.getApduAccess() == ChannelAccess.ACCESS.ALLOWED) {
+                    ca.setApduAccess(ChannelAccess.ACCESS.ALLOWED);
+                }
+            }
+
+            // put APDU filter together if resulting APDU access is not denied.
+            if (ca.getApduAccess() != ChannelAccess.ACCESS.DENIED) {
                 if (channelAccess.isUseApduFilter()) {
+                    Log.i(mTag, "Merged Access Rule:  APDU filter together");
                     ca.setUseApduFilter(true);
                     ApduFilter[] filter = ca.getApduFilter();
                     ApduFilter[] filter2 = channelAccess.getApduFilter();
@@ -264,6 +245,7 @@ public class AccessRuleCache {
                 // All the APDU access requests shall never be allowed in this case.
                 // This missing rule resolution is valid for both ARA and ARF
                 // if the supported GP SEAC version is v1.1 or later.
+                ca.setAccess(ChannelAccess.ACCESS.DENIED, "No APDU access rule is available");
                 ca.setApduAccess(ChannelAccess.ACCESS.DENIED);
             }
             if (ca.getNFCEventAccess() == ChannelAccess.ACCESS.UNDEFINED) {
