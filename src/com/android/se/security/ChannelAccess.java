@@ -47,6 +47,7 @@ public class ChannelAccess {
     private String mReason = "no access by default";
     private ACCESS mNFCEventAccess = ACCESS.UNDEFINED;
     private ApduFilter[] mApduFilter = null;
+    private ACCESS mPrivilegeAccess = ACCESS.UNDEFINED;
 
     /** Clones the ChannelAccess */
     public ChannelAccess clone() {
@@ -140,8 +141,38 @@ public class ChannelAccess {
         ca.setAccess(ACCESS.ALLOWED, "privilege application");
         ca.setApduAccess(ACCESS.ALLOWED);
         ca.setNFCEventAccess(ACCESS.ALLOWED);
+        ca.setPrivilegeAccess(ACCESS.ALLOWED);
 
         return ca;
+    }
+
+    /** Provides the ChannelAccess with CarrierPrivilege Access */
+    public static ChannelAccess getCarrierPrivilegeAccess(String packageName, int pid) {
+        ChannelAccess ca = new ChannelAccess();
+        ca.setPackageName(packageName);
+        ca.setCallingPid(pid);
+        ca.setAccess(ACCESS.ALLOWED, "Carrier-Privilege");
+        ca.setApduAccess(ACCESS.ALLOWED);
+        ca.setPrivilegeAccess(ACCESS.ALLOWED);
+
+        return ca;
+    }
+
+    public ACCESS getPrivilegeAccess() {
+        return mPrivilegeAccess;
+    }
+
+    public void setPrivilegeAccess(ACCESS access) {
+        mPrivilegeAccess = access;
+    }
+
+    public void setCarrierPrivilegeAccess(String packageName, int pid) {
+        mPackageName = packageName;
+        mCallingPid = pid;
+        mAccess = ACCESS.ALLOWED;
+        mApduAccess = ACCESS.ALLOWED;
+        mPrivilegeAccess = ACCESS.ALLOWED;
+        mReason = "Carrier-Privilege";
     }
 
     @Override
@@ -171,6 +202,8 @@ public class ChannelAccess {
         sb.append(mReason);
         sb.append(", mNFCEventAllowed=");
         sb.append(mNFCEventAccess);
+        sb.append(", mPrivilegeAccess=");
+        sb.append(mPrivilegeAccess);
         sb.append("]\n");
 
         return sb.toString();
