@@ -42,7 +42,6 @@ import android.se.omapi.ISecureElementReader;
 import android.se.omapi.ISecureElementSession;
 import android.se.omapi.SEService;
 import android.util.Log;
-import android.util.StatsLog;
 
 import com.android.se.SecureElementService.SecureElementSession;
 import com.android.se.internal.ByteArrayConverter;
@@ -112,9 +111,9 @@ public class Terminal {
                 if (mAccessControlEnforcer != null) {
                     mAccessControlEnforcer.reset();
                 }
-                StatsLog.write(
-                        StatsLog.SE_STATE_CHANGED,
-                        StatsLog.SE_STATE_CHANGED__STATE__DISCONNECTED,
+                SecureElementStatsLog.write(
+                        SecureElementStatsLog.SE_STATE_CHANGED,
+                        SecureElementStatsLog.SE_STATE_CHANGED__STATE__DISCONNECTED,
                         reason,
                         mName);
             } else {
@@ -129,9 +128,9 @@ public class Terminal {
                     // ignore
                 }
                 mDefaultApplicationSelectedOnBasicChannel = true;
-                StatsLog.write(
-                        StatsLog.SE_STATE_CHANGED,
-                        StatsLog.SE_STATE_CHANGED__STATE__CONNECTED,
+                SecureElementStatsLog.write(
+                        SecureElementStatsLog.SE_STATE_CHANGED,
+                        SecureElementStatsLog.SE_STATE_CHANGED__STATE__CONNECTED,
                         reason,
                         mName);
             }
@@ -142,9 +141,9 @@ public class Terminal {
         @Override
         public void serviceDied(long cookie) {
             Log.e(mTag, mName + " died");
-            StatsLog.write(
-                    StatsLog.SE_STATE_CHANGED,
-                    StatsLog.SE_STATE_CHANGED__STATE__HALCRASH,
+            SecureElementStatsLog.write(
+                    SecureElementStatsLog.SE_STATE_CHANGED,
+                    SecureElementStatsLog.SE_STATE_CHANGED__STATE__HALCRASH,
                     "HALCRASH",
                     mName);
             synchronized (mLock) {
@@ -225,9 +224,9 @@ public class Terminal {
             mSEHal.linkToDeath(mDeathRecipient, 0);
         }
         Log.i(mTag, mName + " was initialized");
-        StatsLog.write(
-                StatsLog.SE_STATE_CHANGED,
-                StatsLog.SE_STATE_CHANGED__STATE__INITIALIZED,
+        SecureElementStatsLog.write(
+                SecureElementStatsLog.SE_STATE_CHANGED,
+                SecureElementStatsLog.SE_STATE_CHANGED__STATE__INITIALIZED,
                 "INIT",
                 mName);
     }
@@ -401,9 +400,9 @@ public class Terminal {
         ChannelAccess channelAccess = null;
         if (packageName != null) {
             Log.w(mTag, "Enable access control on basic channel for " + packageName);
-            StatsLog.write(
-                    StatsLog.SE_OMAPI_REPORTED,
-                    StatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
+            SecureElementStatsLog.write(
+                    SecureElementStatsLog.SE_OMAPI_REPORTED,
+                    SecureElementStatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
                     mName,
                     packageName);
             try {
@@ -488,9 +487,9 @@ public class Terminal {
         ChannelAccess channelAccess = null;
         if (packageName != null) {
             Log.w(mTag, "Enable access control on logical channel for " + packageName);
-            StatsLog.write(
-                    StatsLog.SE_OMAPI_REPORTED,
-                    StatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
+            SecureElementStatsLog.write(
+                    SecureElementStatsLog.SE_OMAPI_REPORTED,
+                    SecureElementStatsLog.SE_OMAPI_REPORTED__OPERATION__OPEN_CHANNEL,
                     mName,
                     packageName);
             try {
