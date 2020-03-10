@@ -81,8 +81,8 @@ public class Terminal {
     /** For each Terminal there will be one AccessController object. */
     private AccessControlEnforcer mAccessControlEnforcer;
 
-    private static final String SECURE_ELEMENT_PRIVILEGED_PERMISSION =
-            "android.permission.SECURE_ELEMENT_PRIVILEGED";
+    private static final String SECURE_ELEMENT_PRIVILEGED_OPERATION_PERMISSION =
+            "android.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION";
 
     private ISecureElementHalCallback.Stub mHalCallback = new ISecureElementHalCallback.Stub() {
         @Override
@@ -679,8 +679,8 @@ public class Terminal {
             return false;
         }
         mContext.enforceCallingOrSelfPermission(
-                android.Manifest.permission.SECURE_ELEMENT_PRIVILEGED,
-                "Need SECURE_ELEMENT_PRIVILEGED permission");
+                android.Manifest.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION,
+                "Need SECURE_ELEMENT_PRIVILEGED_OPERATION permission");
 
         try {
             byte status = mSEHal12.reset();
@@ -765,7 +765,7 @@ public class Terminal {
     private boolean isPrivilegedApplication(String packageName) {
         PackageManager pm = mContext.getPackageManager();
         if (pm != null) {
-            return (pm.checkPermission(SECURE_ELEMENT_PRIVILEGED_PERMISSION,
+            return (pm.checkPermission(SECURE_ELEMENT_PRIVILEGED_OPERATION_PERMISSION,
                     packageName) == PackageManager.PERMISSION_GRANTED);
         }
         return false;
